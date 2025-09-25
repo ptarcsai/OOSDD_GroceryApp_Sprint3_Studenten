@@ -48,6 +48,10 @@ namespace Grocery.App.ViewModels
             foreach (Product p in _productService.GetAll())
                 if (MyGroceryListItems.FirstOrDefault(g => g.ProductId == p.Id) == null  && p.Stock > 0)
                     AvailableProducts.Add(p);
+
+            ProductEmptyMessage = AvailableProducts.Count == 0 //Om na het toevoegen van laatste beschikbare product gelijk de bericht "geen producten meer om toe te voegen" te tonen
+                ? "Er zijn geen producten meer om toe te voegen"
+                : string.Empty;
         }
 
         partial void OnGroceryListChanged(GroceryList value)
