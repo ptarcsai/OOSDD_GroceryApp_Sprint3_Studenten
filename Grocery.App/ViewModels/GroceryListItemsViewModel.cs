@@ -6,6 +6,7 @@ using Grocery.Core.Interfaces.Services;
 using Grocery.Core.Models;
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.Linq; //Om linq te kunnen gebruiken
 
 namespace Grocery.App.ViewModels
 {
@@ -23,6 +24,8 @@ namespace Grocery.App.ViewModels
         GroceryList groceryList = new(0, "None", DateOnly.MinValue, "", 0);
         [ObservableProperty]
         string myMessage;
+        [ObservableProperty]
+        string productEmptyMessage = "Er zijn geen producten meer om toe te voegen"; //Om dynamische melding te kunnen maken
 
         public GroceryListItemsViewModel(IGroceryListItemsService groceryListItemsService, IProductService productService, IFileSaverService fileSaverService)
         {
@@ -45,6 +48,10 @@ namespace Grocery.App.ViewModels
             foreach (Product p in _productService.GetAll())
                 if (MyGroceryListItems.FirstOrDefault(g => g.ProductId == p.Id) == null  && p.Stock > 0)
                     AvailableProducts.Add(p);
+
+            ProductEmptyMessage = AvailableProducts.Count == 0 //Om na het toevoegen van laatste beschikbare product gelijk de bericht "geen producten meer om toe te voegen" te tonen
+                ? "Er zijn geen producten meer om toe te voegen"
+                : string.Empty;
         }
 
         partial void OnGroceryListChanged(GroceryList value)
@@ -85,6 +92,41 @@ namespace Grocery.App.ViewModels
                 await Toast.Make($"Opslaan mislukt: {ex.Message}").Show(cancellationToken);
             }
         }
+
+        //UC8: Zoeken van beschikbare producten
+        [RelayCommand]
+        public void PerformSearch(string? query)
+        {
+            var term = (query ?? string.Empty).Trim();
+
+            //Alleen producten die nog toegevoegd kunnen worden en dus niet in lijst staan en voorraad > 0
+            var baseList = _productService.GetAll()
+                .Where(p => MyGroceryListItems.FirstOrDefault(g => g.ProductId == p.Id) == null
+                            && p.Stock > 0);
+
+            //Filteren voor lege zoekterm, anders anders tonen op match Name product
+            var filtered = string.IsNullOrWhiteSpace(term)
+                ? baseList
+                : baseList.Where(p => (p.Name ?? string.Empty)
+                        .Contains(term, StringComparison.OrdinalIgnoreCase));
+
+            //Verversen van productenlijst
+            AvailableProducts.Clear();
+            foreach (var p in filtered) AvailableProducts.Add(p);
+
+            //Dynamische melding zoekterm niet gevonden of helemaal geen producten beschikbaar
+            if (AvailableProducts.Count == 0)
+            {
+                ProductEmptyMessage = string.IsNullOrWhiteSpace(term)
+                    ? "Er zijn geen producten meer om toe te voegen"
+                    : "Er zijn geen producten die aan de zoekopdracht voldoen";
+            }
+            else
+            {
+                ProductEmptyMessage = string.Empty;
+            }
+        }
+
 
     }
 }
