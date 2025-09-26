@@ -47,13 +47,6 @@ jobs:
       - name: Bouw de applicatie
         run: dotnet build .\Grocery.App\Grocery.App.csproj -f net8.0-windows10.0.19041.0 -r win-x64 -c Release -p:PublishReadyToRun=true
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: GroceryApp-build
-          path: |
-            **/bin/Release/net8.0-windows10.0.19041.0/win-x64/
-            !**/*.pdb   # (optioneel: exclude symbol files)
 
       - name: Voer unit tests uit
         run: dotnet test .\TestCore\TestCore.csproj -f net8.0 -c Release --no-restore --logger "trx;LogFileName=test_results.trx"
